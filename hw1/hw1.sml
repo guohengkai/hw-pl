@@ -6,37 +6,38 @@ fun is_older(x: int * int * int, y: int * int * int) =
        else #2 x > #2 y
   else #1 x > #1 y
 
-fun number_in_month(dates: (int * int * int) list, m: int) =
+fun number_in_month(dates: (int * int * int) list, month: int) =
   if null dates
   then 0
   else let
-         val m_tl = number_in_month(tl dates, m)
+         val number_tl = number_in_month(tl dates, month)
        in
-         if #2 (hd dates) = m
-         then m_tl + 1
-         else m_tl
+         if #2 (hd dates) = month
+         then number_tl + 1
+         else number_tl
        end
 
-fun number_in_months(dates: (int * int * int) list, ms: int list) =
-  if null ms
+fun number_in_months(dates: (int * int * int) list, months: int list) =
+  if null months
   then 0
-  else number_in_month(dates, hd ms) + number_in_months(dates, tl ms)
+  else number_in_month(dates, hd months) + number_in_months(dates, tl months)
 
-fun dates_in_month(dates: (int * int * int) list, m: int) =
+fun dates_in_month(dates: (int * int * int) list, month: int) =
   if null dates
   then []
   else let
-         val m_tl = dates_in_month(tl dates, m)
+         val months_tl = dates_in_month(tl dates, month)
        in
-         if #2 (hd dates) = m
-         then (hd dates)::m_tl
-         else m_tl
+         if #2 (hd dates) = month
+         then (hd dates)::months_tl
+         else months_tl
        end
 
-fun dates_in_months(dates: (int * int * int) list, ms: int list) =
-  if null ms
+(* no order keeps *)
+fun dates_in_months(dates: (int * int * int) list, months: int list) =
+  if null months
   then []
-  else dates_in_month(dates, hd ms) @ dates_in_months(dates, tl ms)
+  else dates_in_month(dates, hd months) @ dates_in_months(dates, tl months)
 
 fun get_nth(strs: string list, n: int) =
   if n = 1
