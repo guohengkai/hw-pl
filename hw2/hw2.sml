@@ -129,3 +129,94 @@ fun officiate(cards, moves, goal) =
   in
     officiate_internal([], cards, moves)
   end
+
+fun score_challenge(cards, goal) =
+  let
+    fun score_internal(held_cards, cards) =
+      case cards of
+        [] => score(held_cards, goal)
+      | head :: tail => 
+          let
+            val score_ori = score_internal(head :: held_cards, tail)
+          in
+            case head of
+              (s, Ace) => Int.min(score_ori, score_internal((s, Num 1) :: held_cards, tail))
+            | _ => score_ori
+          end
+  in
+    score_internal([], cards)
+  end
+
+
+
+fun officiate_challenge(cards, moves, goal) =
+  let
+    fun min_sum_cards(cards) =
+      let
+        fun min_card_value(card) =
+          case card of
+            (_, Ace) => 1
+          | _ => card_value(card)
+
+        fun sum_cards_internal(cards, sum) =
+          case cards of
+            [] => sum
+          | head :: tail => sum_cards_internal(tail, sum + min_card_value(head))
+      in
+        sum_cards_internal(cards, 0)
+      end
+
+    fun officiate_internal(held_cards, cards, moves) =
+      case moves of
+        [] => score_challenge(held_cards, goal)
+      | current_move :: rest_moves =>
+          case current_move of
+            Discard card => officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
+	  | Draw => case cards of
+                      [] => score_challenge(held_cards, goal)
+		    | head :: tail =>
+                        let
+                          val new_held_cards = head :: held_cards
+                        in
+                          if min_sum_cards(new_held_cards) > goal
+                          then score_challenge(new_held_cards, goal)
+                          else officiate_internal(new_held_cards, tail, rest_moves)
+                        end
+  in
+    officiate_internal([], cards, moves)
+  end
+
+fun careful_player(cards, goal) =
+  let
+    fun discard_zero(cards, card) =
+      let
+        val sum = sum_cards(card :: cards)
+        fun discard_zero_internal(cards) =
+          case cards of
+            [] => NONE
+	  | head :: tail => if sum - card_value(head) = goal
+                            then SOME head
+                            else discard_zero_internal(tail)
+      in
+        discard_zero_internal(cards)
+      end
+
+    fun player_internal(held_cards, cards) =
+      case cards of
+        [] => []
+      | head :: tail => 
+          let val sum = sum_cards(held_cards)
+              val new_held_cards = head :: held_cards
+          in
+            if sum < goal - 10
+            then Draw :: player_internal(new_held_cards, tail)
+            else
+              case discard_zero(held_cards, head) of
+                SOME card => [Discard card, Draw]
+	      | NONE => if sum + card_value(head) <= goal
+                        then Draw :: player_internal(new_held_cards, tail)
+                        else []
+          end
+  in
+    player_internal([], cards)
+  end

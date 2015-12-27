@@ -60,3 +60,23 @@ fun provided_test2 () = (* correct behavior: return 3 *)
 val test2g_1 = provided_test1() = 0 handle IllegalMove => true;
 val test2g_2 = provided_test2() = 3;
 
+(* Challenge Problems *)
+fun test1_challenge () =
+    let val cards = [(Clubs,Ace),(Spades,Ace),(Clubs,Ace),(Spades,Ace),(Spades,Ace)]
+	val moves = [Draw,Draw,Draw,Draw,Draw]
+    in
+ 	officiate_challenge(cards,moves,42)
+    end
+
+fun test2_challenge () =
+    let val cards = [(Clubs,Ace),(Spades,Ace),(Clubs,Ace),(Spades,Ace),(Spades,Ace)]
+	val moves = [Draw,Draw,Draw,Draw,Draw]
+    in
+ 	officiate_challenge(cards,moves,35)
+    end
+
+val test3a_1 = test1_challenge() = 3;
+val test3a_2 = test2_challenge() = 0;
+
+val test3b_1 = careful_player([(Clubs,Ace),(Spades,Ace),(Clubs,Ace),(Spades,Ace),(Spades,Ace)], 42) = [Draw, Draw, Draw];
+val test3b_2 = careful_player([(Clubs,Ace),(Spades,Ace),(Clubs,Num 1),(Spades,King),(Spades,Ace)], 32) = [Draw, Draw, Draw, Discard (Clubs, Num 1), Draw];
