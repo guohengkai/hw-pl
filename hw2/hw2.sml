@@ -62,3 +62,70 @@ datatype move = Discard of card | Draw
 exception IllegalMove
 
 (* put your solutions for problem 2 here *)
+fun card_color(card) =
+  case card of
+    (Clubs, _) => Black
+  | (Spades, _) => Black
+  | (Diamonds, _) => Red
+  | (Hearts, _) => Red
+
+fun card_value(card) =
+  case card of
+    (_, Num num) => num
+  | (_, Ace) => 11
+  | _ => 10
+
+fun remove_card(cards, card, ex) =
+  case cards of
+    [] => raise ex
+  | head :: tail => if card = head
+                    then tail
+                    else head :: remove_card(tail, card, ex)
+
+fun all_same_color(cards) =
+  case cards of
+    [] => true
+  | _::[] => true
+  | head :: (neck :: rest) =>  (card_color(head) = card_color(neck)) andalso all_same_color(neck :: rest)
+
+fun sum_cards(cards) =
+  let
+    fun sum_cards_internal(cards, sum) =
+      case cards of
+        [] => sum
+      | head :: tail => sum_cards_internal(tail, sum + card_value(head))
+  in
+    sum_cards_internal(cards, 0)
+  end
+
+fun score(cards, goal) =
+  let
+    val sum = sum_cards(cards)
+    val pre_score = if sum > goal then (sum - goal) * 3 else goal - sum
+  in
+    if all_same_color(cards)
+    then pre_score div 2
+    else pre_score
+  end
+
+fun officiate(cards, moves, goal) =
+  let
+    fun officiate_internal(held_cards, cards, moves) =
+      case moves of
+        [] => score(held_cards, goal)
+      | current_move :: rest_moves =>
+          case current_move of
+            Discard card => officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
+	  | Draw => case cards of
+                      [] => score(held_cards, goal)
+		    | head :: tail =>
+                        let
+                          val new_held_cards = head :: held_cards
+                        in
+                          if sum_cards(new_held_cards) > goal
+                          then score(new_held_cards, goal)
+                          else officiate_internal(new_held_cards, tail, rest_moves)
+                        end
+  in
+    officiate_internal([], cards, moves)
+  end
