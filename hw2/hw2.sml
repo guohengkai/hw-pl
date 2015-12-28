@@ -10,30 +10,30 @@ fun same_string(s1 : string, s2 : string) =
 fun all_except_option(str, str_list) =
   case str_list of
     [] => NONE
-  | head :: tail => if same_string(str, head)
-                    then SOME tail
-                    else case all_except_option(str, tail) of
-                           NONE => NONE
-			 | SOME res_list => SOME (head::res_list)
+  | head::tail => if same_string(str, head)
+                  then SOME tail
+                  else case all_except_option(str, tail) of
+                         NONE => NONE
+                       | SOME res_list => SOME (head::res_list)
 
 fun get_substitutions1(str_lists, str) =
   case str_lists of
     [] => []
-  | head :: tail => let
-                      val sub_list = get_substitutions1(tail, str)
-                    in
-                      case all_except_option(str, head) of
-                        NONE => sub_list
-		      | SOME res => res @ sub_list
-                    end
+  | head::tail => let
+                    val sub_list = get_substitutions1(tail, str)
+                  in
+                    case all_except_option(str, head) of
+                      NONE => sub_list
+		    | SOME res => res @ sub_list
+                  end
 
 fun get_substitutions2(str_lists, str) = 
   let fun get_sub_tail_recur(str_lists, res_list) =
         case str_lists of
           [] => res_list
-        | head :: tail => case all_except_option(str, head) of
-                            NONE => get_sub_tail_recur(tail, res_list)
-		          | SOME res => get_sub_tail_recur(tail, res_list @ res)
+        | head::tail => case all_except_option(str, head) of
+                          NONE => get_sub_tail_recur(tail, res_list)
+		        | SOME res => get_sub_tail_recur(tail, res_list @ res)
   in
     get_sub_tail_recur(str_lists, [])
   end
@@ -45,9 +45,9 @@ fun similar_names(str_lists, full_name) =
     fun replace_first_name(sub_list) =
       case sub_list of
         [] => []
-      | head :: tail => {first = head, middle = middle, last = last} :: replace_first_name(tail)         
+      | head::tail => {first = head, middle = middle, last = last}::replace_first_name(tail)         
   in
-    full_name :: replace_first_name(sub_list)
+    full_name::replace_first_name(sub_list)
   end
 	             
 (* you may assume that Num is always used with values 2, 3, ..., 10
@@ -62,46 +62,50 @@ datatype move = Discard of card | Draw
 exception IllegalMove
 
 (* put your solutions for problem 2 here *)
-fun card_color(card) =
-  case card of
-    (Clubs, _) => Black
-  | (Spades, _) => Black
-  | (Diamonds, _) => Red
-  | (Hearts, _) => Red
+fun card_color(s, r) =
+  case s of
+    Clubs => Black
+  | Spades => Black
+  | Diamonds => Red
+  | Hearts => Red
 
-fun card_value(card) =
-  case card of
-    (_, Num num) => num
-  | (_, Ace) => 11
+fun card_value(s, r) =
+  case r of
+    Num num => num
+  | Ace => 11
   | _ => 10
 
 fun remove_card(cards, card, ex) =
   case cards of
     [] => raise ex
-  | head :: tail => if card = head
-                    then tail
-                    else head :: remove_card(tail, card, ex)
+  | head::tail => if card = head
+                  then tail
+                  else head::remove_card(tail, card, ex)
 
 fun all_same_color(cards) =
   case cards of
     [] => true
   | _::[] => true
-  | head :: (neck :: rest) =>  (card_color(head) = card_color(neck)) andalso all_same_color(neck :: rest)
+  | head::(neck::rest) =>  (card_color(head) = card_color(neck)) andalso all_same_color(neck::rest)
 
 fun sum_cards(cards) =
   let
     fun sum_cards_internal(cards, sum) =
       case cards of
         [] => sum
-      | head :: tail => sum_cards_internal(tail, sum + card_value(head))
+      | head::tail => sum_cards_internal(tail, sum + card_value(head))
   in
     sum_cards_internal(cards, 0)
   end
 
+fun sum_to_pre_score(sum, goal) =
+  if sum > goal
+  then 3 * (sum - goal)
+  else goal - sum
+
 fun score(cards, goal) =
   let
-    val sum = sum_cards(cards)
-    val pre_score = if sum > goal then (sum - goal) * 3 else goal - sum
+    val pre_score = sum_to_pre_score(sum_cards(cards), goal)
   in
     if all_same_color(cards)
     then pre_score div 2
@@ -113,14 +117,13 @@ fun officiate(cards, moves, goal) =
     fun officiate_internal(held_cards, cards, moves) =
       case moves of
         [] => score(held_cards, goal)
-      | current_move :: rest_moves =>
-          case current_move of
-            Discard card => officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
-	  | Draw => case cards of
+      | (Discard card)::rest_moves =>
+          officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
+      | Draw::rest_moves => case cards of
                       [] => score(held_cards, goal)
-		    | head :: tail =>
+		    | head::tail =>
                         let
-                          val new_held_cards = head :: held_cards
+                          val new_held_cards = head::held_cards
                         in
                           if sum_cards(new_held_cards) > goal
                           then score(new_held_cards, goal)
@@ -135,12 +138,12 @@ fun score_challenge(cards, goal) =
     fun score_internal(held_cards, cards) =
       case cards of
         [] => score(held_cards, goal)
-      | head :: tail => 
+      | head::tail => 
           let
-            val score_ori = score_internal(head :: held_cards, tail)
+            val score_ori = score_internal(head::held_cards, tail)
           in
             case head of
-              (s, Ace) => Int.min(score_ori, score_internal((s, Num 1) :: held_cards, tail))
+              (s, Ace) => Int.min(score_ori, score_internal((s, Num 1)::held_cards, tail))
             | _ => score_ori
           end
   in
@@ -153,15 +156,15 @@ fun officiate_challenge(cards, moves, goal) =
   let
     fun min_sum_cards(cards) =
       let
-        fun min_card_value(card) =
-          case card of
-            (_, Ace) => 1
-          | _ => card_value(card)
+        fun min_card_value(s, r) =
+          case r of
+            Ace => 1
+          | _ => card_value((s, r))
 
         fun sum_cards_internal(cards, sum) =
           case cards of
             [] => sum
-          | head :: tail => sum_cards_internal(tail, sum + min_card_value(head))
+          | head::tail => sum_cards_internal(tail, sum + min_card_value(head))
       in
         sum_cards_internal(cards, 0)
       end
@@ -169,52 +172,52 @@ fun officiate_challenge(cards, moves, goal) =
     fun officiate_internal(held_cards, cards, moves) =
       case moves of
         [] => score_challenge(held_cards, goal)
-      | current_move :: rest_moves =>
-          case current_move of
-            Discard card => officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
-	  | Draw => case cards of
-                      [] => score_challenge(held_cards, goal)
-		    | head :: tail =>
-                        let
-                          val new_held_cards = head :: held_cards
-                        in
-                          if min_sum_cards(new_held_cards) > goal
-                          then score_challenge(new_held_cards, goal)
-                          else officiate_internal(new_held_cards, tail, rest_moves)
-                        end
+      | (Discard card)::rest_moves =>
+          officiate_internal(remove_card(held_cards, card, IllegalMove), cards, rest_moves)
+      | Draw::rest_moves =>
+          case cards of
+            [] => score_challenge(held_cards, goal)
+          | head::tail =>
+              let
+                val new_held_cards = head::held_cards
+              in
+                if min_sum_cards(new_held_cards) > goal
+                then score_challenge(new_held_cards, goal)
+                else officiate_internal(new_held_cards, tail, rest_moves)
+              end
   in
     officiate_internal([], cards, moves)
   end
 
 fun careful_player(cards, goal) =
   let
-    fun discard_zero(cards, card) =
+    fun if_discard_then_draw(cards, card) =
       let
-        val sum = sum_cards(card :: cards)
-        fun discard_zero_internal(cards) =
+        val sum = sum_cards(card::cards)
+        fun if_discard_then_draw_internal(cards) =
           case cards of
             [] => NONE
 	  | head :: tail => if sum - card_value(head) = goal
                             then SOME head
-                            else discard_zero_internal(tail)
+                            else if_discard_then_draw_internal(tail)
       in
-        discard_zero_internal(cards)
+        if_discard_then_draw_internal(cards)
       end
 
     fun player_internal(held_cards, cards) =
       case cards of
         [] => []
-      | head :: tail => 
+      | head::tail => 
           let val sum = sum_cards(held_cards)
-              val new_held_cards = head :: held_cards
+              val new_held_cards = head::held_cards
           in
             if sum < goal - 10
-            then Draw :: player_internal(new_held_cards, tail)
+            then Draw::player_internal(new_held_cards, tail)
             else
-              case discard_zero(held_cards, head) of
+              case if_discard_then_draw(held_cards, head) of
                 SOME card => [Discard card, Draw]
 	      | NONE => if sum + card_value(head) <= goal
-                        then Draw :: player_internal(new_held_cards, tail)
+                        then Draw::player_internal(new_held_cards, tail)
                         else []
           end
   in
