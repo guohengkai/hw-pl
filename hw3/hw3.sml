@@ -122,3 +122,44 @@ fun first_match valu ps =
   in
     SOME (first_answer (curry match valu) ps) handle NoAnswer => NONE
   end
+
+fun typecheck_patterns(cons, patterns) =
+  let
+    fun get_constructor(name, cons) =
+      case cons of
+        [] => NONE
+      | (s1, s2, t)::tail => if s1 = name
+			     then SOME (s2, t)
+			     else get_constructor(name, tail)
+
+    exception TypeError;
+    fun merge_type(t1, t2) =
+      case (t1, t2) of
+        (Datatype s1, Datatype s2) => if s1 = s2 then t1 else raise TypeError
+      | (TupleT ts1, TupleT ts2) =>
+          if List.length(ts1) = List.length(ts2)
+          then TupleT (List.map (merge_type) (ListPair.zip(ts1, ts2)))
+          else raise TypeError
+      | (t, Anything) => t
+      | (Anything, t) => t
+      | (UnitT, UnitT) => UnitT
+      | (IntT, IntT) => IntT
+      | _ => raise TypeError
+
+    fun get_pattern_type(pattern) =
+      case pattern of
+        Wildcard => Anything
+      | Variable _ => Anything
+      | UnitP => UnitT
+      | ConstP _ => IntT
+      | TupleP ps => TupleT (List.foldr (fn (p, lst) => get_pattern_type(p)::lst) [] ps)
+      | ConstructorP (s, p) =>
+	  case get_constructor(s, cons) of
+            SOME (s, t) => 
+              if merge_type(get_pattern_type(p), t) = t
+              then Datatype s
+              else raise TypeError
+	  | NONE => raise TypeError
+  in
+    SOME (List.foldl (merge_type) Anything (List.map (get_pattern_type) patterns)) handle TypeError => NONE
+  end

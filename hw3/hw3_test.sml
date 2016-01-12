@@ -31,3 +31,12 @@ val test11_2 = match(Constructor("hehe", Tuple [Unit, Constructor("haha", Const 
   ConstructorP("hehe", TupleP [Wildcard, ConstructorP("haha", Wildcard), Variable "hi", UnitP, TupleP [Wildcard, Variable "hi"]])) = NONE;
 val test12_1 = first_match (Constructor("hehe", Tuple [Unit, Constructor("haha", Const 1), Const 2, Unit, Tuple [Const 0, Unit]])) [ConstructorP("hehe", TupleP [Wildcard, ConstructorP("haha", Wildcard), Variable "hi", UnitP, TupleP [Wildcard, Variable "hi"]]), ConstructorP("hehe", TupleP [Wildcard, ConstructorP("haha", Wildcard), Variable "hi", UnitP, TupleP [Wildcard, Variable "hi"]])] = SOME [("hi", Const 2), ("hi", Unit)];
 val test12_2 = first_match (Constructor("hehe", Tuple [Unit, Constructor("haha", Const 1), Const 2, Unit, Tuple [Const 0]])) [ConstructorP("hehe", TupleP [Wildcard, ConstructorP("haha", Wildcard), Variable "hi", UnitP, TupleP [Wildcard, Variable "hi"]])] = NONE;
+
+val test_c_1 = typecheck_patterns([], [TupleP [Variable "x", Variable "y"], TupleP [Wildcard, Wildcard]])
+  = SOME(TupleT [Anything, Anything]);
+val test_c_2 = typecheck_patterns([], [TupleP [Wildcard, TupleP [Wildcard, Wildcard]], TupleP [Wildcard, Wildcard]])
+  = SOME(TupleT [Anything, TupleT [Anything, Anything]]);
+val test_c_3 = typecheck_patterns([], [ConstructorP("c", Variable "x")]) = NONE;
+val test_c_4 = typecheck_patterns([("c", "t", TupleT[IntT, Datatype "t"]), ("c2", "t", UnitT)],
+  [ConstructorP("c", TupleP [ConstP 5, ConstructorP("c2", UnitP)]), ConstructorP("c2", UnitP), ConstructorP("c2", UnitP)])
+  = SOME(Datatype "t");
