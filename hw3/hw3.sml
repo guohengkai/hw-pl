@@ -51,10 +51,8 @@ val longest_string2 =
 
 fun longest_string_helper f =
   List.foldl (fn (x, y) => if f(String.size(x), String.size(y)) then x else y) ""
-val longest_string3 =
-  longest_string_helper Int.>
-val longest_string4 =
-  longest_string_helper Int.>=
+val longest_string3 = longest_string_helper Int.>
+val longest_string4 = longest_string_helper Int.>=
 
 val longest_capitalized = longest_string3 o only_capitals
 
@@ -79,12 +77,12 @@ fun all_answers f list =
     all_answers_internal(list, [])
   end
 
-val count_wildcards = g (fn _ => 1) (fn _ => 0)
+val count_wildcards = g (fn () => 1) (fn _ => 0)
 
-val count_wild_and_variable_lengths = g (fn _ => 1) (fn str => String.size(str))
+val count_wild_and_variable_lengths = g (fn () => 1) String.size
 
 fun count_some_var(var, pattern) =
-  g (fn _ => 0) (fn str => if str = var then 1 else 0) pattern
+  g (fn () => 0) (fn str => if str = var then 1 else 0) pattern
 
 fun check_pat pattern =
   let
@@ -95,13 +93,13 @@ fun check_pat pattern =
       | TupleP ps => List.foldl (fn (p, l) => get_variable_list(p, l)) lst ps
       | _ => lst
     
-    fun check_replicate(lst, remain) =
+    fun check_replicate lst =
       case lst of
         [] => false
-      | head::tail => List.exists (fn str => str = head) (remain @ tail)
-                        orelse check_replicate(tail, head::remain)
+      | head::tail => List.exists (fn str => str = head) tail
+                        orelse check_replicate tail
   in
-    not (check_replicate(get_variable_list(pattern, []), []))
+    not (check_replicate (get_variable_list(pattern, [])))
   end
 
 fun match(valu, pattern) =
@@ -110,7 +108,7 @@ fun match(valu, pattern) =
   | (_, Variable s) => SOME [(s, valu)]
   | (Unit, UnitP) => SOME []
   | (Const x, ConstP y) => if x = y then SOME [] else NONE
-  | (Tuple vs, TupleP ps) => if List.length(vs) = List.length(ps)
+  | (Tuple vs, TupleP ps) => if List.length vs  = List.length ps
                              then all_answers (match) (ListPair.zip(vs, ps))
 			     else NONE
   | (Constructor(s1, v), ConstructorP(s2, p)) => if s1 = s2 then match(v, p) else NONE
@@ -134,17 +132,16 @@ fun typecheck_patterns(cons, patterns) =
 
     exception TypeError;
     fun merge_type(t1, t2) =
-      case (t1, t2) of
-        (Datatype s1, Datatype s2) => if s1 = s2 then t1 else raise TypeError
-      | (TupleT ts1, TupleT ts2) =>
-          if List.length(ts1) = List.length(ts2)
-          then TupleT (List.map (merge_type) (ListPair.zip(ts1, ts2)))
-          else raise TypeError
-      | (t, Anything) => t
-      | (Anything, t) => t
-      | (UnitT, UnitT) => UnitT
-      | (IntT, IntT) => IntT
-      | _ => raise TypeError
+      if t1 = t2
+      then t1
+      else case (t1, t2) of
+             (TupleT ts1, TupleT ts2) =>
+               if List.length(ts1) = List.length(ts2)
+               then TupleT (List.map (merge_type) (ListPair.zip(ts1, ts2)))
+               else raise TypeError
+           | (_, Anything) => t1
+           | (Anything, _) => t2
+           | _ => raise TypeError
 
     fun get_pattern_type(pattern) =
       case pattern of
@@ -152,14 +149,15 @@ fun typecheck_patterns(cons, patterns) =
       | Variable _ => Anything
       | UnitP => UnitT
       | ConstP _ => IntT
-      | TupleP ps => TupleT (List.foldr (fn (p, lst) => get_pattern_type(p)::lst) [] ps)
+      | TupleP ps => TupleT (List.map get_pattern_type ps)
       | ConstructorP (s, p) =>
-	  case get_constructor(s, cons) of
-            SOME (s, t) => 
-              if merge_type(get_pattern_type(p), t) = t
-              then Datatype s
-              else raise TypeError
-	  | NONE => raise TypeError
+          let fun match_constructor(s1, s2, t) =
+                s1 = s andalso merge_type(get_pattern_type p, t) = t
+          in
+	    case List.find match_constructor cons of
+              SOME (_, s, _) => Datatype s
+	    | NONE => raise TypeError
+          end
   in
     SOME (List.foldl (merge_type) Anything (List.map (get_pattern_type) patterns)) handle TypeError => NONE
   end
